@@ -1,0 +1,57 @@
+[project]
+name = "langgraph-a2a-adapters"
+version = "0.1.0"
+description = "LangGraph to Google A2A Protocol Adapter"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "baem1n", email = "baem1n@users.noreply.github.com"}
+]
+keywords = ["langgraph", "a2a", "agent", "llm", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "a2a-sdk[http-server]",
+    "langgraph",
+    "uvicorn",
+]
+
+[project.urls]
+Homepage = "https://github.com/baem1n/langgraph-a2a-adapters"
+Repository = "https://github.com/baem1n/langgraph-a2a-adapters"
+Issues = "https://github.com/baem1n/langgraph-a2a-adapters/issues"
+
+[project.optional-dependencies]
+examples = [
+    "deepagents",
+    "httpx",
+    "jupyter",
+    "langchain-community",
+    "langchain-openai",
+    "langchain-tavily",
+    "python-dotenv",
+]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/langgraph_a2a_adapters"]

@@ -37,10 +37,6 @@ def a2a_agent(
 
         adapter = LangGraphA2AAdapter.from_function(func, config)
 
-        func.invoke = adapter.invoke
-        func.ainvoke = adapter.ainvoke
-        func.batch = adapter.batch
-        func.abatch = adapter.abatch
         func.serve = adapter.serve
         func.app = adapter.app
         func.adapter = adapter
@@ -86,10 +82,6 @@ def a2a_class(
 
             adapter = LangGraphA2AAdapter.from_class(self, config, method_name)
 
-            self.invoke = adapter.invoke
-            self.ainvoke = adapter.ainvoke
-            self.batch = adapter.batch
-            self.abatch = adapter.abatch
             self.serve = adapter.serve
             self.app = adapter.app
             self.adapter = adapter

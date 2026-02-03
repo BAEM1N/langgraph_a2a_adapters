@@ -1,12 +1,12 @@
 [project]
 name = "langgraph-a2a-adapters"
-version = "0.1.0"
+version = "0.0.2"
 description = "LangGraph to Google A2A Protocol Adapter"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 authors = [
-    {name = "baem1n", email = "baem1n@users.noreply.github.com"}
+    {name = "BAEM1N", email = "baem1n@users.noreply.github.com"}
 ]
 keywords = ["langgraph", "a2a", "agent", "llm", "ai"]
 classifiers = [
@@ -14,9 +14,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -27,9 +24,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/baem1n/langgraph-a2a-adapters"
-Repository = "https://github.com/baem1n/langgraph-a2a-adapters"
-Issues = "https://github.com/baem1n/langgraph-a2a-adapters/issues"
+Homepage = "https://github.com/BAEM1N/langgraph_a2a_adapters"
+Repository = "https://github.com/BAEM1N/langgraph_a2a_adapters"
+Issues = "https://github.com/BAEM1N/langgraph_a2a_adapters/issues"
 
 [project.optional-dependencies]
 examples = [

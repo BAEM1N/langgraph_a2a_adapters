@@ -23,7 +23,7 @@ pip install langgraph-a2a-adapters
 开发环境（使用 uv）：
 
 ```bash
-git clone https://github.com/baem1n/langgraph-a2a-adapters.git
+git clone https://github.com/BAEM1N/langgraph_a2a_adapters.git
 cd langgraph-a2a-adapters
 uv sync --all-extras
 ```

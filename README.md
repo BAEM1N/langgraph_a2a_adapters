@@ -34,16 +34,14 @@ uv sync --all-extras
 
 ```python
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 
 @tool
 def get_weather(city: str) -> str:
     """도시의 현재 날씨를 조회합니다."""
     return f"{city}: 맑음, 15°C"
 
-llm = ChatOpenAI(model="gpt-4.1")
-agent = create_react_agent(llm, [get_weather])
+agent = create_agent(model="gpt-4.1", tools=[get_weather])
 ```
 
 ### 2. A2A 서버로 실행
@@ -170,6 +168,48 @@ def search_web(query: str) -> str:
 | `tasks/get` | 태스크 조회 |
 | `tasks/cancel` | 태스크 취소 |
 
+## 동적 API 키 전달
+
+HTTP 헤더로 API 키를 동적으로 전달할 수 있습니다. 에이전트 서버는 그대로 두고, 요청마다 다른 API 키나 모델을 사용할 수 있습니다.
+
+### 지원 헤더
+
+| 헤더 | 설명 |
+|------|------|
+| `X-OpenAI-API-Key` | OpenAI API 키 |
+| `X-OpenAI-Base-URL` | OpenAI API Base URL |
+| `X-OpenAI-Model` | 사용할 모델 (gpt-4.1, gpt-4o 등) |
+| `X-Tavily-API-Key` | Tavily API 키 |
+
+### 에이전트에서 사용
+
+```python
+def search_node(state):
+    api_config = state.get('api_config') or {}
+
+    # 헤더에서 받은 키 사용, 없으면 환경변수 fallback
+    llm = ChatOpenAI(
+        model=api_config.get('openai_model') or "gpt-4.1",
+        api_key=api_config.get('openai_api_key'),
+        base_url=api_config.get('openai_base_url'),
+    )
+
+    tavily = TavilySearch(
+        api_key=api_config.get('tavily_api_key'),
+    )
+    # ...
+```
+
+### 호출 예시
+
+```bash
+curl -X POST http://localhost:8003 \
+  -H "Content-Type: application/json" \
+  -H "X-OpenAI-Model: gpt-4o" \
+  -H "X-OpenAI-API-Key: sk-xxx" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"message/send","params":{...}}'
+```
+
 ## 프로젝트 구조
 
 ```
@@ -181,7 +221,8 @@ langgraph-a2a-adapters/
 │   └── decorators.py      # 데코레이터
 ├── examples/              # 사용 예제
 │   ├── search_agent/      # 웹 검색 에이전트
-│   └── text_to_sql/       # SQL 에이전트 (Search Agent 호출)
+│   ├── text_to_sql/       # SQL 에이전트 (Search Agent 호출)
+│   └── dynamic_agent/     # 동적 API 키 에이전트
 └── docs/                  # 다국어 문서
 ```
 
@@ -197,6 +238,9 @@ python examples/search_agent/a2a_agent.py
 
 # SQL Agent 실행 (포트 8001)
 python examples/text_to_sql/a2a_agent.py
+
+# Dynamic Agent 실행 (포트 8003) - 헤더로 API 키 전달
+python examples/dynamic_agent/a2a_agent.py
 ```
 
 ## 관련 링크

@@ -33,6 +33,7 @@ class LangGraphAgentExecutor(AgentExecutor):
         context_id = context.context_id
 
         input_text = self._extract_input_text(context)
+        api_config = self._extract_api_config(context)
 
         try:
             await event_queue.enqueue_event(
@@ -44,7 +45,7 @@ class LangGraphAgentExecutor(AgentExecutor):
                 )
             )
 
-            result = await self.executor.ainvoke(input_text)
+            result = await self.executor.ainvoke(input_text, api_config=api_config)
             response_text = result.get("content", "")
             response_message = new_agent_text_message(response_text)
 
@@ -93,6 +94,18 @@ class LangGraphAgentExecutor(AgentExecutor):
             elif hasattr(part, "text"):
                 return part.text
         return ""
+
+    def _extract_api_config(self, context: RequestContext) -> dict:
+        if not context.call_context or not context.call_context.state:
+            return {}
+
+        headers = context.call_context.state.get('headers', {})
+        return {
+            'openai_api_key': headers.get('x-openai-api-key'),
+            'openai_base_url': headers.get('x-openai-base-url'),
+            'openai_model': headers.get('x-openai-model'),
+            'tavily_api_key': headers.get('x-tavily-api-key'),
+        }
 
 
 class LangGraphA2AAdapter:

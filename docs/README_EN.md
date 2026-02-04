@@ -36,16 +36,14 @@ First, create an agent with LangGraph. Here's a simple weather agent example.
 
 ```python
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 
 @tool
 def get_weather(city: str) -> str:
     """Get current weather for a city."""
     return f"{city}: Sunny, 15°C"
 
-llm = ChatOpenAI(model="gpt-4.1")
-agent = create_react_agent(llm, [get_weather])
+agent = create_agent(model="gpt-4.1", tools=[get_weather])
 ```
 
 ### 2. Run as A2A Server

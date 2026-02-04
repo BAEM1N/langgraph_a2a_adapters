@@ -1,6 +1,6 @@
 [project]
 name = "langgraph-a2a-adapters"
-version = "0.0.2"
+version = "0.0.3"
 description = "LangGraph to Google A2A Protocol Adapter"
 readme = "README.md"
 license = {text = "MIT"}

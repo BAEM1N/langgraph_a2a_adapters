@@ -13,14 +13,14 @@ class BaseExecutor(ABC):
     """에이전트 실행기 인터페이스."""
 
     @abstractmethod
-    def invoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    def invoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def ainvoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    async def ainvoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         pass
 
-    async def astream(self, query: str, session_id: Optional[str] = None, **kwargs) -> AsyncIterator[Dict[str, Any]]:
+    async def astream(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> AsyncIterator[Dict[str, Any]]:
         result = await self.ainvoke(query, session_id, **kwargs)
         content = result.get("content", "")
 
@@ -61,11 +61,17 @@ class LangGraphExecutor(BaseExecutor):
         except ImportError:
             return False
 
-    def _prepare_input(self, query: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+    def _prepare_input(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if self._langchain_available and self.use_langchain_messages:
             from langchain_core.messages import HumanMessage
-            return {self.input_key: [HumanMessage(content=query)]}
-        return {self.input_key: query}
+            input_data = {self.input_key: [HumanMessage(content=query)]}
+        else:
+            input_data = {self.input_key: query}
+
+        if api_config:
+            input_data['api_config'] = api_config
+
+        return input_data
 
     def _prepare_config(self, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
         config = {}
@@ -87,14 +93,14 @@ class LangGraphExecutor(BaseExecutor):
 
         return {"content": str(output), "data": result, "is_task_complete": True}
 
-    def invoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
-        input_data = self._prepare_input(query, session_id)
+    def invoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
+        input_data = self._prepare_input(query, session_id, api_config)
         config = self._prepare_config(session_id, **kwargs)
         result = self.graph.invoke(input_data, config if config else None)
         return self._extract_response(result)
 
-    async def ainvoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
-        input_data = self._prepare_input(query, session_id)
+    async def ainvoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
+        input_data = self._prepare_input(query, session_id, api_config)
         config = self._prepare_config(session_id, **kwargs)
 
         if hasattr(self.graph, "ainvoke"):
@@ -106,8 +112,8 @@ class LangGraphExecutor(BaseExecutor):
             )
         return self._extract_response(result)
 
-    async def astream(self, query: str, session_id: Optional[str] = None, **kwargs) -> AsyncIterator[Dict[str, Any]]:
-        input_data = self._prepare_input(query, session_id)
+    async def astream(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> AsyncIterator[Dict[str, Any]]:
+        input_data = self._prepare_input(query, session_id, api_config)
         config = self._prepare_config(session_id, **kwargs)
 
         if hasattr(self.graph, "astream"):
@@ -150,16 +156,16 @@ class FunctionExecutor(BaseExecutor):
     def __init__(self, func):
         self.func = func
 
-    def invoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    def invoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         try:
             result = self.func(query, **kwargs) if kwargs else self.func(query)
         except TypeError:
             result = self.func(query)
         return self._normalize_result(result)
 
-    async def ainvoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    async def ainvoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, lambda: self.invoke(query, session_id, **kwargs))
+        return await loop.run_in_executor(None, lambda: self.invoke(query, session_id, api_config, **kwargs))
 
     def _normalize_result(self, result: Any) -> Dict[str, Any]:
         if isinstance(result, dict):
@@ -176,16 +182,16 @@ class ClassExecutor(BaseExecutor):
         self.method_name = method_name
         self.method = getattr(instance, method_name)
 
-    def invoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    def invoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         try:
             result = self.method(query, **kwargs) if kwargs else self.method(query)
         except TypeError:
             result = self.method(query)
         return self._normalize_result(result)
 
-    async def ainvoke(self, query: str, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    async def ainvoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, lambda: self.invoke(query, session_id, **kwargs))
+        return await loop.run_in_executor(None, lambda: self.invoke(query, session_id, api_config, **kwargs))
 
     def _normalize_result(self, result: Any) -> Dict[str, Any]:
         if isinstance(result, dict):

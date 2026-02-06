@@ -63,10 +63,12 @@ class LangGraphAgentExecutor(AgentExecutor):
             await event_queue.enqueue_event(task)
 
         except Exception as e:
+            error_message = new_agent_text_message(f"Error: {str(e)}")
             error_task = Task(
                 id=task_id,
                 contextId=context_id,
-                status=TaskStatus(state=TaskState.failed, message=str(e)),
+                status=TaskStatus(state=TaskState.failed),
+                history=[error_message],
             )
             await event_queue.enqueue_event(error_task)
 
@@ -96,15 +98,17 @@ class LangGraphAgentExecutor(AgentExecutor):
         return ""
 
     def _extract_api_config(self, context: RequestContext) -> dict:
+        """X- prefix 헤더를 api_config로 추출 (환경변수 스타일)."""
         if not context.call_context or not context.call_context.state:
             return {}
 
         headers = context.call_context.state.get('headers', {})
+        # x- prefix 헤더만 추출, prefix 제거하고 대문자 + 언더스코어로 변환
+        # X-OPENAI-API-KEY -> OPENAI_API_KEY
         return {
-            'openai_api_key': headers.get('x-openai-api-key'),
-            'openai_base_url': headers.get('x-openai-base-url'),
-            'openai_model': headers.get('x-openai-model'),
-            'tavily_api_key': headers.get('x-tavily-api-key'),
+            k[2:].upper().replace('-', '_'): v
+            for k, v in headers.items()
+            if k.lower().startswith('x-')
         }
 
 

@@ -4,9 +4,30 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 from langgraph.graph.state import CompiledStateGraph
+
+
+def _create_langfuse_callback(api_config: Dict[str, Any]) -> Optional[Any]:
+    """api_config에서 Langfuse 콜백 핸들러 생성."""
+    secret_key = api_config.get('LANGFUSE_SECRET_KEY')
+    public_key = api_config.get('LANGFUSE_PUBLIC_KEY')
+
+    if not secret_key or not public_key:
+        return None
+
+    try:
+        from langfuse.langchain import CallbackHandler
+        return CallbackHandler(
+            secret_key=secret_key,
+            public_key=public_key,
+            host=api_config.get('LANGFUSE_BASE_URL', 'https://cloud.langfuse.com'),
+        )
+    except ImportError:
+        return None
+    except Exception:
+        return None
 
 
 class BaseExecutor(ABC):
@@ -73,10 +94,17 @@ class LangGraphExecutor(BaseExecutor):
 
         return input_data
 
-    def _prepare_config(self, session_id: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+    def _prepare_config(self, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         config = {}
         if session_id:
             config["configurable"] = {"thread_id": session_id}
+
+        # Langfuse 콜백 자동 추가
+        if api_config:
+            langfuse_callback = _create_langfuse_callback(api_config)
+            if langfuse_callback:
+                config["callbacks"] = [langfuse_callback]
+
         config.update(kwargs)
         return config
 
@@ -95,13 +123,13 @@ class LangGraphExecutor(BaseExecutor):
 
     def invoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         input_data = self._prepare_input(query, session_id, api_config)
-        config = self._prepare_config(session_id, **kwargs)
+        config = self._prepare_config(session_id, api_config, **kwargs)
         result = self.graph.invoke(input_data, config if config else None)
         return self._extract_response(result)
 
     async def ainvoke(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> Dict[str, Any]:
         input_data = self._prepare_input(query, session_id, api_config)
-        config = self._prepare_config(session_id, **kwargs)
+        config = self._prepare_config(session_id, api_config, **kwargs)
 
         if hasattr(self.graph, "ainvoke"):
             result = await self.graph.ainvoke(input_data, config if config else None)
@@ -114,7 +142,7 @@ class LangGraphExecutor(BaseExecutor):
 
     async def astream(self, query: str, session_id: Optional[str] = None, api_config: Optional[Dict[str, Any]] = None, **kwargs) -> AsyncIterator[Dict[str, Any]]:
         input_data = self._prepare_input(query, session_id, api_config)
-        config = self._prepare_config(session_id, **kwargs)
+        config = self._prepare_config(session_id, api_config, **kwargs)
 
         if hasattr(self.graph, "astream"):
             async for chunk in self.graph.astream(input_data, config if config else None):
